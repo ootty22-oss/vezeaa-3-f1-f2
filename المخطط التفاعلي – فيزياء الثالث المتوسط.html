@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>المخطط التفاعلي – فيزياء الثالث المتوسط</title>
+<style>
+:root{
+  --bg:#f6f4ef; --ink:#1f2433; --muted:#6b7082; --line:#c9c4b8; --card:#fff;
+  --ch1:#2563c9; --ch1-soft:#e3ecfb; --ch2:#c2410c; --ch2-soft:#fbe9df;
+  --def:#15803d; --law:#7c3aed; --ex:#d97706; --act:#0e7490; --app:#0891b2;
+  --note:#ca8a04; --enr:#64748b; --q:#475569; --concept:#0f766e; --warn:#b91c1c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic","Noto Sans Arabic",Arial,sans-serif}
+header{position:fixed;inset:0 0 auto 0;z-index:20;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:10px 14px;background:rgba(246,244,239,.94);backdrop-filter:blur(6px);border-bottom:1px solid #e4dfd3}
+header h1{font-size:17px;margin:0;white-space:nowrap}
+header h1 small{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.search{position:relative;flex:1;min-width:170px;max-width:340px}
+.search input{width:100%;padding:8px 12px;border:1px solid #d6d0c2;border-radius:10px;font:inherit;font-size:14px;background:#fff}
+#results{position:absolute;top:110%;inset-inline:0;background:#fff;border:1px solid #ddd;border-radius:10px;max-height:50vh;overflow:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+#results button{display:block;width:100%;text-align:right;border:0;background:none;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid #f0ede6}
+#results button:hover{background:#f5f1e8}
+#results small{color:var(--muted);display:block;font-size:11px}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:1px solid #d6d0c2;background:#fff;border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.btn:hover{background:#f3efe5}.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#legend{position:fixed;bottom:12px;right:12px;z-index:15;background:rgba(255,255,255,.95);border:1px solid #e4dfd3;border-radius:12px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:5px;max-width:min(560px,calc(100vw - 24px))}
+#legend .lg{display:flex;align-items:center;gap:5px;font-size:12px;border:1px solid transparent;border-radius:8px;padding:3px 7px;cursor:pointer;background:none;font-family:inherit;color:var(--ink)}
+#legend .lg.on{border-color:var(--ink);background:#f3efe5}
+#legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+#legend .hint{width:100%;font-size:11px;color:var(--muted)}
+#stage{position:fixed;inset:0;touch-action:none;cursor:grab}
+#stage.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#world.anim{transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+svg#edges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.edge{fill:none;stroke:var(--line);stroke-width:2}
+.xlink{fill:none;stroke:#8b5cf6;stroke-width:1.8;stroke-dasharray:6 5;opacity:.75}
+.xlink.hot{stroke:#e11d48;opacity:1;stroke-width:2.4}
+.node{position:absolute;width:190px;transform:translate(-50%,-50%);background:var(--card);border:1.5px solid #ddd;border-inline-start:5px solid var(--c,#999);
+  border-radius:10px;padding:6px 9px;font-size:13px;line-height:1.35;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);
+  user-select:none;transition:box-shadow .15s,opacity .2s,outline-color .2s;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}}
+.node:hover{box-shadow:0 4px 14px rgba(0,0,0,.13)}
+.node .k{display:block;font-size:10px;color:var(--c);font-weight:700;letter-spacing:.2px}
+.node .tt{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.node.sel{outline:3px solid var(--c);outline-offset:2px}
+.node.dim{opacity:.22}
+.node.match{box-shadow:0 0 0 3px #facc15}
+.node.root{width:230px;text-align:center;background:var(--ink);color:#fff;border:0;font-size:16px;font-weight:700;padding:14px}
+.node.chapter{width:200px;color:#fff;background:var(--c);border:0;font-weight:700;font-size:15px;padding:10px 12px}
+.node.chapter .k{color:rgba(255,255,255,.85)}
+.node.lesson{background:var(--soft);font-weight:600}
+.node.enrich{border-style:dashed;border-inline-start-style:solid;background:#fafafa}
+.node .flag{color:var(--warn);font-size:11px;font-weight:700}
+.tg{position:absolute;top:50%;width:22px;height:22px;margin-top:-11px;border-radius:50%;border:1.5px solid var(--c,#888);background:#fff;color:var(--c,#555);
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-family:inherit}
+.tg.r{right:-13px}.tg.l{left:-13px}
+.node.chapter .tg,.node.root .tg{border-color:#fff}
+#panel{position:fixed;z-index:30;top:64px;left:12px;bottom:12px;width:min(440px,calc(100vw - 24px));background:#fff;border-radius:16px;
+  box-shadow:0 12px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(-110%);transition:transform .3s ease}
+#panel.open{transform:none}
+#panel .ph{padding:14px 16px 10px;border-bottom:1px solid #eee;border-top:6px solid var(--c);border-radius:16px 16px 0 0}
+#panel .crumbs{font-size:11px;color:var(--muted);margin-bottom:4px}
+#panel .crumbs a{color:inherit;cursor:pointer;text-decoration:underline dotted}
+#panel h2{margin:4px 0 0;font-size:19px}
+#panel .badge{display:inline-block;font-size:11px;color:#fff;background:var(--c);border-radius:6px;padding:2px 8px}
+#panel .x{position:absolute;left:12px;top:14px;border:0;background:#f1efe9;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer}
+#panel .pb{padding:12px 16px 18px;overflow:auto;font-size:15px;line-height:1.85}
+#panel .pf{display:flex;gap:8px;padding:10px 16px;border-top:1px solid #eee}
+#panel .pf .btn{flex:1}
+.pb h4{margin:14px 0 4px;font-size:14px;color:var(--c)}
+.pb ul,.pb ol{padding-inline-start:20px;margin:6px 0}
+.pb .box{border-radius:10px;padding:8px 12px;margin:10px 0}
+.pb .defbox{background:#ecfdf3;border-inline-start:4px solid var(--def)}
+.pb .lawbox{background:#f3edff;border-inline-start:4px solid var(--law)}
+.pb .notebox{background:#fef9e7;border-inline-start:4px solid var(--note)}
+.pb .enrbox{background:#f1f5f9;border:1px dashed var(--enr)}
+.pb .warnbox{background:#fef2f2;border-inline-start:4px solid var(--warn);font-size:13px}
+.pb table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+.pb td,.pb th{border:1px solid #e5e2da;padding:5px 7px;text-align:right;vertical-align:top}
+.pb th{background:#f7f5f0}
+.eq{direction:ltr;text-align:center;font-family:"Cambria Math","Times New Roman",serif;font-size:21px;margin:10px 0;padding:8px;background:#faf9f6;border-radius:8px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 4px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{border:1px solid #ddd;border-inline-start:4px solid var(--c);background:#fff;border-radius:8px;padding:4px 9px;font:inherit;font-size:13px;cursor:pointer}
+.chip:hover{background:#f6f3ec}
+.chip small{color:var(--muted)}
+.steps li{display:none;margin:4px 0}
+.steps li.show{display:list-item;animation:pop2 .3s}
+@keyframes pop2{from{opacity:0}}
+.stepbtn{margin:4px 0 8px}
+.fig{display:block;margin:8px auto;max-width:100%;background:#fcfbf8;border-radius:10px}
+@media (max-width:700px){
+  .btn{padding:6px 8px;font-size:12px}
+  header{gap:6px;padding:8px 10px}
+  header h1{font-size:15px}
+  header h1 small{display:none}
+  #panel{top:auto;left:0;right:0;bottom:0;width:100%;height:68vh;border-radius:18px 18px 0 0;transform:translateY(105%)}
+  #panel .ph{border-radius:18px 18px 0 0}
+  #legend{display:none}
+  #legend.show{display:flex;bottom:auto;top:110px}
+}
+@media (min-width:701px){#lgBtn{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>المخطط التفاعلي لمادة الفيزياء<small>الثالث المتوسط – الفصل الأول (الكهربائية الساكنة) والفصل الثاني (المغناطيسية)</small></h1>
+  <div class="search"><input id="q" type="search" placeholder="ابحث عن مفهوم أو قانون… مثل: كولوم"><div id="results"></div></div>
+  <div class="tools">
+    <button class="btn" data-lvl="1" title="إظهار الفصلين فقط">الفصول</button>
+    <button class="btn" data-lvl="2" title="إظهار الدروس">الدروس</button>
+    <button class="btn" data-lvl="9" title="فتح كل الفروع">الكل</button>
+    <button class="btn" id="xl" title="إظهار الروابط بين المفاهيم">🔗 الروابط</button>
+    <button class="btn" id="zin" aria-label="تكبير">＋</button>
+    <button class="btn" id="zout" aria-label="تصغير">－</button>
+    <button class="btn" id="fit" title="ملاءمة الشاشة">⤢</button>
+    <button class="btn" id="lgBtn">الألوان</button>
+  </div>
+</header>
+<div id="stage"><div id="world"><svg id="edges"></svg><div id="nodes"></div></div></div>
+<div id="legend"></div>
+<aside id="panel" aria-live="polite">
+  <div class="ph"><button class="x" id="close" aria-label="إغلاق">×</button><div class="crumbs" id="crumbs"></div><span class="badge" id="badge"></span><h2 id="ptitle"></h2></div>
+  <div class="pb" id="pbody"></div>
+  <div class="pf"><button class="btn" id="prev">→ السابق</button><button class="btn" id="next">التالي ←</button></div>
+</aside>
+
+<script>
+/* ===================== أدوات صياغة ===================== */
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const eq=s=>`<div class="eq">${s}</div>`;
+const L=s=>`<span class="ltr">${s}</span>`;
+const p10=(m,e)=>`${m}×10<sup>${e}</sup>`;
+const steps=arr=>`<button class="btn stepbtn">أظهر الخطوة التالية</button><ol class="steps">${arr.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+const box=(cls,h)=>`<div class="box ${cls}">${h}</div>`;
+const warn=h=>box('warnbox','⚠ <b>يحتاج إلى مراجعة:</b> '+h);
+
+/* ===================== الرسوم ===================== */
+const FIG={
+atom:`<svg class="fig" viewBox="0 0 260 170" width="260"><ellipse cx="130" cy="85" rx="110" ry="55" fill="none" stroke="#94a3b8" stroke-dasharray="4 4"/><ellipse cx="130" cy="85" rx="60" ry="30" fill="none" stroke="#94a3b8" stroke-dasharray="4 4"/>
+<circle cx="122" cy="80" r="12" fill="#ef4444"/><text x="122" y="84" font-size="11" fill="#fff" text-anchor="middle">p+</text><circle cx="138" cy="90" r="12" fill="#9ca3af"/><text x="138" y="94" font-size="11" fill="#fff" text-anchor="middle">n</text>
+<circle cx="240" cy="85" r="9" fill="#2563eb"/><text x="240" y="89" font-size="10" fill="#fff" text-anchor="middle">e-</text><circle cx="70" cy="85" r="9" fill="#2563eb"/><text x="70" y="89" font-size="10" fill="#fff" text-anchor="middle">e-</text>
+<text x="130" y="160" font-size="12" text-anchor="middle" fill="#334">النواة: بروتونات (+) ونيوترونات (متعادلة)</text></svg>`,
+scope:`<svg class="fig" viewBox="0 0 220 220" width="200"><rect x="40" y="70" width="140" height="130" rx="8" fill="#e0f2fe" stroke="#64748b"/><rect x="85" y="62" width="50" height="14" rx="4" fill="#a16207"/>
+<line x1="110" y1="30" x2="110" y2="130" stroke="#475569" stroke-width="5"/><ellipse cx="110" cy="28" rx="30" ry="7" fill="#64748b"/>
+<path d="M110 130 L92 172" stroke="#d4a017" stroke-width="5"/><path d="M110 130 L128 172" stroke="#d4a017" stroke-width="5"/>
+<text x="170" y="24" font-size="11" fill="#334">القرص</text><text x="150" y="105" font-size="11" fill="#334">الساق</text><text x="140" y="180" font-size="11" fill="#334">الورقتان</text><text x="140" y="60" font-size="10" fill="#334">سداد عازل</text></svg>`,
+uniform:`<svg class="fig" viewBox="0 0 260 150" width="260"><rect x="20" y="20" width="12" height="110" fill="#ef4444"/><rect x="228" y="20" width="12" height="110" fill="#2563eb"/>
+${[35,57,79,101,123].map(y=>`<line x1="34" y1="${y}" x2="222" y2="${y}" stroke="#334" stroke-width="1.5"/><path d="M128 ${y-5} L138 ${y} L128 ${y+5}" fill="#334"/>`).join('')}
+<text x="26" y="146" font-size="12" text-anchor="middle">+</text><text x="234" y="146" font-size="12" text-anchor="middle">−</text></svg>`,
+efield:`<svg class="fig" viewBox="0 0 300 140" width="300">${[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180,c=Math.cos(r),s=Math.sin(r);return `<line x1="${75+18*c}" y1="${70+18*s}" x2="${75+55*c}" y2="${70+55*s}" stroke="#334"/><circle cx="${75+55*c}" cy="${70+55*s}" r="2.5" fill="#334"/><line x1="${225+55*c}" y1="${70+55*s}" x2="${225+18*c}" y2="${70+18*s}" stroke="#334"/><circle cx="${225+20*c}" cy="${70+20*s}" r="2.5" fill="#334"/>`}).join('')}
+<circle cx="75" cy="70" r="15" fill="#ef4444"/><text x="75" y="75" fill="#fff" text-anchor="middle" font-size="15">+</text><circle cx="225" cy="70" r="15" fill="#2563eb"/><text x="225" y="75" fill="#fff" text-anchor="middle" font-size="15">−</text>
+<text x="150" y="136" font-size="11" text-anchor="middle" fill="#555">الخطوط تخرج من الموجبة وتدخل في السالبة</text></svg>`,
+magnet:`<svg class="fig" viewBox="0 0 300 170" width="300">${[25,45,65].map(h=>`<path d="M220 85 C 240 ${85-h*1.6}, 60 ${85-h*1.6}, 80 85" fill="none" stroke="#334"/><path d="M220 85 C 240 ${85+h*1.6}, 60 ${85+h*1.6}, 80 85" fill="none" stroke="#334"/>`).join('')}
+<rect x="80" y="70" width="70" height="30" fill="#dc2626"/><rect x="150" y="70" width="70" height="30" fill="#2563eb"/><text x="115" y="91" fill="#fff" text-anchor="middle" font-size="15">S</text><text x="185" y="91" fill="#fff" text-anchor="middle" font-size="15">N</text>
+<path d="M146 34 l8 -4 l-8 -4" fill="none" stroke="#334" stroke-width="2" transform="rotate(180 150 30)"/>
+<text x="150" y="164" font-size="11" text-anchor="middle" fill="#555">خارج المغناطيس: من N إلى S، وتكمل دورتها داخله</text></svg>`
+};
+
+/* ===================== المحتوى (مأخوذ من الكتاب المرفق) ===================== */
+const TYPES={
+ root:{n:'المنهج',c:'#1f2433'}, chapter:{n:'فصل',c:'#2563c9'}, lesson:{n:'درس',c:'#2563c9'},
+ concept:{n:'مفهوم',c:'#0f766e'}, def:{n:'تعريف',c:'#15803d'}, law:{n:'قانون',c:'#7c3aed'},
+ ex:{n:'مثال محلول',c:'#d97706'}, act:{n:'نشاط / تجربة',c:'#0e7490'}, app:{n:'تطبيق',c:'#0891b2'},
+ note:{n:'تذكّر / ملاحظة',c:'#ca8a04'}, enrich:{n:'إثرائي (للاطلاع)',c:'#64748b'}, q:{n:'أسئلة ومسائل',c:'#475569'}
+};
+let _id=0;
+function N(type,t,body,kids,o={}){return Object.assign({id:'n'+(++_id),type,t,body:body||'',kids:kids||[]},o)}
+
+const DATA=N('root','فيزياء الثالث المتوسط',
+`<p>هذا المخطط مبني على الملف المرفق، وهو 40 صفحة (صفحات الكتاب 7–46): <b>الفصل الأول (الكهربائية الساكنة)</b> و<b>الفصل الثاني (المغناطيسية)</b>.</p>
+<h4>طريقة الاستعمال</h4><ul><li>اضغط أي عقدة لترى شرحها الكامل هنا.</li><li>الزر الدائري بجانب العقدة يطوي فروعها أو يفتحها.</li><li>اسحب للتحريك، واستعمل العجلة أو إصبعين للتكبير والتصغير.</li><li>زر 🔗 يُظهر الروابط بين المفاهيم المتشابهة في الفصلين.</li></ul>
+${warn('صفحات الكتاب قبل الصفحة 7 غير موجودة في الملف (غلاف الفصل الأول، ومفرداته، وأهدافه، وصفحة 4 التي يحيل إليها الكتاب لشرح ضرب الأسس وقسمتها). كذلك يذكر النص الصور ولا تظهر في المخطط إلا رسوم تبسيطية.')}`,[
+/* ---------------- الفصل الأول ---------------- */
+N('chapter','الفصل الأول: الكهربائية الساكنة',
+`<p>يدرس الفصل الشحنات الكهربائية الساكنة: نشأتها، وأنواعها، وطرائق الشحن، والكشاف الكهربائي، والتطبيقات، والموصلات والعوازل، وقانون كولوم، والمجال الكهربائي.</p>
+<p>الصفحات 7–30 من الكتاب.</p>${warn('صفحة غلاف الفصل الأول ومفرداته وأهدافه غير موجودة في الملف؛ ترقيم الدروس (1-1 … 1-9) مأخوذ من متن الصفحات.')}`,[
+ N('lesson','مقدمة: أصل كلمة الكهربائية',
+ `<p>وجد الحكيم الإغريقي أرسطو طاليس (عام 600 ق.م) أن مادة <b>الكهرب</b> عند دلكها بقطعة من الصوف تصير لها القابلية على جذب الأجسام الخفيفة (مثل قصاصات الورق وقطع القش).</p>
+<p>وبعده وجد العالم الإنكليزي <b>وليم كلبرت</b> (عام 1600م) أن كثيراً من المواد تشارك الكهرب في هذه الخاصية، لذا أطلق عليها اسم «الكهربائية».</p>
+<p>وهي عند الإغريق مشتقة من كلمة ${L('Electron')} التي أطلق عليها «الكهرمان ${L('Amber')}».</p>`,[],{sec:'مقدمة'}),
+
+ N('lesson','الكهربائية الساكنة','<p>ظواهر يومية تبيّن أن الأجسام تُشحن بالدلك، ثم تُفرَّغ شحنتها أحياناً بشكل صعقة طفيفة أو شرارة.</p>',[
+  N('concept','ملاحظات من الحياة اليومية',
+  `<ul><li>انجذاب قصاصات الورق إلى <b>مشط بلاستيكي</b> بعد دلكه بالشعر (والشعر جاف وبدون زيت)، لأن المشط المدلوك يصير مشحوناً بالشحنات الكهربائية الساكنة. شكل (1)</li>
+  <li>انجذاب القصاصات إلى <b>بالون</b> دُلك بقطعة من الصوف. شكل (2)</li>
+  <li>البالون المدلوك بالصوف يجذب <b>شعر الرأس</b> الجاف. شكل (3)</li>
+  <li>البالون المشحون <b>يلتصق بالجدار</b> لعدة ساعات إذا كان الجو جافاً (لأن الهواء الرطب يساعد على تفريغ الشحنات بسرعة). شكل (4)</li>
+  <li>السير على <b>سجادة من الصوف</b> يُكسب الجسم شحنات، فتشعر بصعقة طفيفة عند لمس المقبض المعدني للباب. شكل (5)</li>
+  <li>النزول من <b>السيارة</b> ولمس جزء معدني منها يسبب صعقة طفيفة، أو تحدث شرارة صغيرة بين المفتاح والسطح المعدني للسيارة. شكل (6)</li>
+  <li>المشط المدلوك يجذب <b>ماء الحنفية</b> المنساب رفيعاً. شكل (7)</li>
+  <li>في <b>لعبة التزحلق البلاستيكية</b> تحتك ملابس الطفل بأرضية اللعبة فيكتسب جسمه شحنات، ويشعر بصعقة طفيفة عند لمس عمود معدني. شكل (8)</li></ul>`),
+  N('enrich','هل تعلم: البرق',
+  box('enrbox','<b>للاطلاع:</b> قد تكون الكهربائية الساكنة ذات الشدة العالية جداً كالبرق خطرة ومميتة إذا صعقت شخصاً، وتتسبب الصاعقة في حدوث حرائق كبيرة في الغابات عندما تفرغ شحنتها في إحدى أشجارها. شكل (9) و(10)'))
+ ],{sec:'1-1'}),
+
+ N('lesson','الشحنة الكهربائية','<p>المادة تتألف من ذرات، والذرة تحوي إلكترونات سالبة وبروتونات موجبة ونيوترونات متعادلة.</p>'+FIG.atom,[
+  N('concept','تركيب الذرة',
+  FIG.atom+`<ul><li>تحتوي الذرة على <b>إلكترونات سالبة الشحنة</b> ${L('(e<sup>-</sup>)')} تدور بسرعة عالية جداً حول النواة.</li>
+  <li>النواة تحوي <b>بروتونات موجبة الشحنة</b> ${L('(p<sup>+</sup>)')} و<b>نيوترونات متعادلة الشحنة</b> ${L('(n)')}. شكل (11)</li>
+  <li>ترتبط الإلكترونات بنواة الذرة بقوى مقاديرها متفاوتة حسب بعدها عن النواة.</li></ul>`),
+  N('def','الذرة المتعادلة كهربائياً',
+  box('defbox','معظم ذرات المواد تكون <b>متعادلة كهربائياً</b>: عدد إلكتروناتها يساوي عدد بروتوناتها. شكل (12-a)')),
+  N('concept','نوعا الشحنة: موجبة وسالبة',
+  `<table><tr><th>الحالة</th><th>الذرة تصير</th><th>الجسم يكون</th></tr>
+  <tr><td>نقص في عدد الإلكترونات (هروب بعضها إلى خارج الجسم بوجود مؤثر خارجي)</td><td>أيوناً موجباً</td><td>مشحوناً بشحنة موجبة ${L('(+q)')} شكل (12-b)</td></tr>
+  <tr><td>اكتساب إلكترونات من ذرات أجسام أخرى</td><td>أيوناً سالباً</td><td>مشحوناً بشحنة سالبة ${L('(−q)')} شكل (12-c)</td></tr></table>`,[],{links:['n_rubbing']}),
+  N('law','كمية الشحنة ووحدتها (الكولوم)',
+  `<h4>من المهم أن تعرف</h4><ul>
+  <li>البروتون داخل النواة شحنته موجبة ومقدارها يساوي مقدار شحنة الإلكترون.</li>
+  <li>شحنة الإلكترون أو البروتون تُعد <b>أصغر وحدة قياس للشحنات</b>.</li>
+  <li>شحنة أي جسم مشحون تساوي مضاعفات صحيحة لمقدار شحنة الإلكترون:</li></ul>
+  ${eq('شحنة الجسم = عدد الإلكترونات × شحنة الإلكترون')}
+  ${box('lawbox',`مقدار شحنة الإلكترون = ${L(p10('1.6','-19')+' C')} (Coulomb)<br>الكولوم ${L('(C)')} هو وحدة قياس الشحنات الكهربائية.<br>الكولوم الواحد يعادل شحنة ${L(p10('6.25','18'))} إلكتروناً.`)}
+  <h4>أجزاء الكولوم الشائعة</h4><table><tr><th>الوحدة</th><th>قيمتها</th></tr><tr><td>المايكرو كولوم ${L('μC')}</td><td>${L('1 μC = 10<sup>-6</sup> C')}</td></tr><tr><td>النانو كولوم ${L('nC')}</td><td>${L('1 nC = 10<sup>-9</sup> C')}</td></tr></table>
+  ${box('notebox','<b>مثال تطبيقي (من أسئلة الفصل، س1 فقرة 3):</b> فقد جسم شحنة مقدارها '+L(p10('1.6','-9')+' C')+'. كم إلكتروناً فقد؟')}
+  ${steps(['القانون: عدد الإلكترونات = شحنة الجسم ÷ شحنة الإلكترون',
+   'التعويض: '+L(fr(p10('1.6','-9'),p10('1.6','-19'))),
+   'الناتج: '+L('10<sup>10</sup>')+' إلكتروناً (عند القسمة تُطرح الأسس: −9 − (−19) = 10)'])}`,[],{id:'n_coulomb_unit'}),
+  N('act','نشاط: الشحنات المتشابهة تتنافر والمختلفة تتجاذب',
+  `<p><b>الأدوات:</b> ساقان متماثلتان من المطاط الصلب، ساقان متماثلتان من الزجاج، قطعة من الصوف (أو الفرو) وأخرى من الحرير، خيوط من القطن أو الحرير، حاملان.</p>
+  <table><tr><th>الخطوة</th><th>ماذا نفعل</th><th>النتيجة</th></tr>
+  <tr><td>أولاً</td><td>نعلق ساقي المطاط أفقياً متقاربتين وندلك كلاً منهما بالصوف (تُشحن كل منهما بالشحنة <b>السالبة</b>)</td><td>تتنافران — شكل (13-a)</td></tr>
+  <tr><td>ثانياً</td><td>نعلق ساقي الزجاج وندلك كلاً منهما بالحرير (تُشحن كل منهما بالشحنة <b>الموجبة</b>)</td><td>تتنافران — شكل (13-b)</td></tr>
+  <tr><td>ثالثاً</td><td>ساق زجاج مدلوكة بالحرير (موجبة) وساق مطاط مدلوكة بالصوف (سالبة)</td><td>تتجاذبان — شكل (13-c)</td></tr></table>
+  ${box('notebox','<b>تذكّر:</b><br>• الشحنات الكهربائية المختلفة تتجاذب مع بعضها.<br>• الشحنات الكهربائية المتشابهة تتنافر مع بعضها.')}`,[],{id:'n_charge_forces',links:['n_pole_forces']})
+ ],{sec:'1-2'}),
+
+ N('lesson','شحن المادة بالكهربائية','<p>توجد <b>ثلاث طرائق</b> لشحن الأجسام بالكهربائية الساكنة: الدلك، والتماس، والحث.</p>',[
+  N('concept','الشحن بطريقة الدلك',
+  `<p>إذا دلكت بالوناً بقطعة من الصوف:</p><ul><li>تظهر <b>شحنة موجبة على الصوف</b> (نتيجة فقده بعضاً من إلكتروناته).</li><li>تظهر <b>شحنة سالبة على البالون</b> (نتيجة اكتسابه تلك الإلكترونات).</li></ul>
+  <p>إذا علقت البالون المشحون بخيط من مادة عازلة وقربت منه قطعة الصوف المشحونة بالموجبة، تجد أن الصوف يجذب البالون. شكل (14)</p>`,[],{id:'n_rubbing',links:['n_mag_rub']}),
+  N('concept','الشحن بطريقة التماس',
+  `<p>علّق كرتين من <b>نخاع البيلسان</b> بخيطين عازلين من نقطة واحدة. اشحن إحدى الكرتين بملامستها لساق زجاج مدلوكة بالحرير، ثم اتركها تلامس الكرة الأخرى غير المشحونة. شكل (15-a)</p>
+  <p>تلاحظ ابتعاد الكرتين عن بعضهما؛ وهذا يدل على أن الكرة الثانية اكتسبت قسماً من شحنة الكرة الأولى بالتماس، مما أدى إلى تنافرهما. شكل (15-b)</p>
+  ${box('enrbox','<b>هل تعلم (للاطلاع):</b> الجسم المشحون المعزول يفقد شحنته الكهربائية عند تركه في الهواء، وتزداد سرعة تفريغ شحنته بزيادة رطوبة الجو.')}`),
+  N('concept','الشحن بطريقة الحث',
+  `<p>كرة معدنية متعادلة ومعزولة، وساق مطاط مشحونة بشحنة سالبة (بعد دلكها بالصوف). شكل (16)</p>
+  ${steps([
+   '<b>تقريب الساق:</b> شحنة الساق السالبة تنافر بعض إلكترونات سطح الكرة وتدفعها إلى الجهة البعيدة (تُسمى <b>الشحنات الطليقة</b>)، وتظهر في الجهة القريبة شحنة موجبة (تُسمى <b>الشحنات المقيدة</b>). شكل (16-b)',
+   '<b>توصيل الكرة بالأرض</b> (بسلك أو بإصبع اليد) مع بقاء الساق قريبة: تتسرب الشحنات الطليقة إلى الأرض.',
+   '<b>قطع الاتصال بالأرض</b> مع بقاء الساق قريبة: تبقى الشحنة المقيدة في موضعها. شكل (16-d)',
+   '<b>إبعاد الساق:</b> الشحنات المقيدة (الموجبة، المخالفة لشحنة الساق) تتوزع بانتظام على السطح الخارجي للكرة. شكل (16-e)'])}
+  ${box('notebox','الاستدلال على وجود الشحنة من عدمها على جسم ما يتم باستعمال <b>الكشاف الكهربائي</b>.')}
+  ${warn('في الكتاب تُحال الخطوة الثانية إلى «الشكل (19-c)»، والأرجح أنها (16-c) لأن تسلسل الأشكال في هذه الفقرة هو (16)؛ راجعها مع نسخة الكتاب الورقية.')}`,[],{id:'n_induction',links:['n_mag_ind','n_scope']})
+ ],{sec:'1-3'}),
+
+ N('lesson','الكشاف الكهربائي',
+ `<p>${L('Electroscope')}: جهاز يستعمل في تجارب الكهربائية الساكنة.</p>`+FIG.scope,[
+  N('def','الكشاف الكهربائي واستعمالاته',
+  box('defbox','<b>الكشاف الكهربائي:</b> جهاز يستعمل في تجارب الكهربائية الساكنة لأغراض منها:<br>1- الكشف عن وجود شحنة كهربائية على جسم ما.<br>2- معرفة نوع الشحنة الكهربائية على الجسم المشحون.')+'<p>تُصنع الكشافات بأشكال مختلفة. شكل (17)</p>',[],{id:'n_scope'}),
+  N('concept','أجزاء الكشاف الكهربائي',
+  FIG.scope+`<ul><li>ساق مصنوعة من المعدن.</li><li>قرص معدني (أو كرة معدنية) يتصل بالطرف العلوي للساق.</li>
+  <li>ورقتان رقيقتان (أو شريطان) من الذهب أو الألمنيوم تتصلان بالطرف السفلي للساق، أو ورقة رقيقة واحدة تتصل بالطرف السفلي، أو تُعلق من منتصفها على محور في نهاية الساق لتكون طليقة الحركة.</li>
+  <li>صندوق من الزجاج أو المعدن أو الخشب ذو نافذة زجاجية.</li>
+  <li>سداد من الفلين أو المطاط في الجزء العلوي من الصندوق لعزل الساق والورقتين عن الصندوق.</li></ul>`)
+ ],{sec:'1-4'}),
+
+ N('lesson','شحن الكشاف الكهربائي','<p>يُشحن الكشاف بطريقتين: التماس (التوصيل) والحث.</p>',[
+  N('act','نشاط (a): شحن الكشاف بالتماس',
+  `<p><b>الأدوات:</b> كشاف كهربائي، مشط من البلاستك.</p>
+  <ol><li>ندلك المشط بالشعر (الشعر جاف وبدون زيت).</li><li>نجعل المشط يلامس قرص الكشاف المتعادل. نلاحظ ابتعاد ورقتي الكشاف. شكل (18)</li></ol>
+  <h4>التفسير</h4><p>تبتعد الورقتان بسبب ظهور قوة تنافر بينهما، لاكتسابهما النوع نفسه من الشحنات (<b>مماثلة لشحنة الجسم الملامس</b>).</p>`),
+  N('act','نشاط (b): شحن الكشاف بالحث',
+  `<p><b>الأدوات:</b> كشاف كهربائي، ساق من الزجاج، قطعة من الحرير.</p>
+  ${steps([
+   'ندلك ساق الزجاج بالحرير فتظهر عليها شحنة <b>موجبة</b>. شكل (19-a)',
+   'نقرب الساق من قرص الكشاف المتعادل: تتنافر ورقة الألمنيوم مع ساق الكشاف. ينشحن القرص بالشحنة <b>السالبة</b> (المقيدة) والورقة بالشحنة <b>الموجبة</b> (الطليقة). شكل (19-b)',
+   'نصل القرص بالأرض (إصبع اليد) مع بقاء الساق قريبة: تنطبق الورقة على ساق الكشاف بسبب اكتساب الكشاف إلكترونات من الأرض. شكل (19-c)',
+   'نرفع الإصبع مع بقاء الساق قريبة: تبقى الورقة منطبقة.',
+   'نبعد ساق الزجاج: تتنافر الورقة مع ساق الكشاف، لتوزع الشحنات الباقية (التي كانت مقيدة) على القرص والساق والورقة. شكل (19-d)'])}
+  ${box('notebox','<b>القاعدة:</b> دائماً ينشحن القرص بالشحنة <b>المخالفة</b> لشحنة المؤثر (لتجاذبهما)، وتنشحن الورقة والساق بالشحنة <b>المشابهة</b> لشحنة المؤثر (لتنافرهما).')}
+  ${box('enrbox','<b>هل تعلم (للاطلاع):</b> عند إيصال موصل مشحون بالأرض بسلك معدني يقال له إنه <b>مؤرَّض</b> ('+L('grounded')+')، فتتعادل شحنته، باعتبار الأرض مستودعاً كبيراً لتصريف الشحنات التي تنتقل منها وإليها بسهولة.')}`,[],{links:['n_induction']}),
+  N('note','تذكّر: التماس مقابل الحث',
+  `<table><tr><th>طريقة شحن الكشاف</th><th>شحنة الورقتين</th></tr>
+  <tr><td>التماس</td><td><b>مماثلة</b> لشحنة الجسم الملامس</td></tr>
+  <tr><td>الحث</td><td><b>مخالفة</b> لشحنة الجسم المقرّب من القرص</td></tr></table>`)
+ ],{sec:'1-5'}),
+
+ N('lesson','تطبيقات عملية للكهربائية الساكنة','<p>تُستثمر الكهربائية الساكنة في عمل عدد من الأجهزة.</p>',[
+  N('app','المِرذاذ (صبغ السيارات)',
+  `<ul><li>توصل فوهة المرذاذ بالقطب <b>الموجب</b> للمصدر، فتصير قطيرات الصبغ الخارجة مشحونة بشحنة موجبة، <b>فتتباعد</b> بسبب قوى التنافر بينها. شكل (20)</li>
+  <li>الجسم الموصل المراد صبغه (سيارة أو كرسي) يوصل بالقطب <b>السالب</b> أو بالأرض، فتنجذب القطيرات إلى سطحه، مما يجعل الصبغ <b>متجانساً وجيداً</b>.</li></ul>`,[],{links:['n_charge_forces']}),
+  N('app','تطبيقات أخرى',
+  `<ul><li>أجهزة الاستنساخ.</li><li>أجهزة الترسيب في معامل صناعة الإسمنت للتقليل من التلوث البيئي.</li><li>تثبيت مواد التجميل والعدسات اللاصقة.</li></ul>`)
+ ],{sec:'1-6'}),
+
+ N('lesson','اختلاف المواد في التوصيل الكهربائي','<p>تُقسم المواد من حيث قابليتها على التوصيل الكهربائي إلى موصلات وعوازل.</p>',[
+  N('def','الموصلات Conductors',
+  box('defbox','<b>الموصلات:</b> مواد تحتوي وفرة من الشحنات السالبة (الإلكترونات ضعيفة الارتباط بالنواة)، وتتحرك الإلكترونات خلالها بسهولة.')+'<p><b>أمثلة:</b> النحاس، الفضة، الألمنيوم. شكل (21)</p>'),
+  N('def','العوازل Insulators',
+  box('defbox','<b>العوازل:</b> مواد لا تتحرك فيها الشحنات الكهربائية بحرية.')+'<p><b>أمثلة:</b> الزجاج، الصوف، المطاط. شكل (22)</p>'),
+  N('concept','لماذا لا تنشحن ساق النحاس الممسوكة باليد؟',
+  `<ul><li>إذا أمسكت ساق نحاس بيدك ودلكتها بالصوف ثم قربتها من القصاصات، لا تنجذب القصاصات؛ لأن الشحنات المتولدة <b>تسربت مباشرة إلى الأرض عن طريق جسمك</b>.</li>
+  <li>إذا أمسكتها بمقبض عازل (أو لبست كفاً من المطاط) ثم دلكتها، تنجذب القصاصات إليها. شكل (23)</li></ul>
+  ${box('notebox','<b>الاستنتاج:</b> ساق النحاس يمكن شحنها بالكهربائية الساكنة واحتفاظها بالشحنات لفترة قصيرة إذا كانت معزولة.')}`),
+  N('enrich','هل تعلم: أشباه الموصلات',
+  box('enrbox','<b>للاطلاع:</b> توجد مواد تسمى <b>أشباه الموصلات</b> (مثل السيليكون والجرمانيوم) تمتلك قابلية توصيل كهربائي في ظروف معينة، وتسلك سلوك العازل في ظروف أخرى.'))
+ ],{sec:'1-7'}),
+
+ N('lesson','قانون كولوم',`<p>${L("Coulomb's law")}: يحدد مقدار القوة الكهربائية المتبادلة بين شحنتين نقطيتين ساكنتين.</p>`,[
+  N('law','نص قانون كولوم وصيغته',
+  box('lawbox','<b>نص القانون:</b> القوة الكهربائية المتبادلة بين شحنتين كهربائيتين نقطيتين ساكنتين تتناسب تناسباً <b>طردياً</b> مع حاصل ضرب مقداريهما، و<b>عكسياً</b> مع مربع البعد بينهما. شكل (24)')
+  +eq('F = k '+fr('q<sub>1</sub> × q<sub>2</sub>','r<sup>2</sup>'))
+  +`<p style="text-align:center">القوة الكهربائية = ثابت × ${fr('مقدار الشحنة الأولى × مقدار الشحنة الثانية','مربع البعد بين الشحنتين')}</p>
+  <table><tr><th>الرمز</th><th>الكمية</th><th>الوحدة</th></tr>
+  <tr><td>${L('F')}</td><td>القوة الكهربائية</td><td>نيوتن ${L('(N)')}</td></tr>
+  <tr><td>${L('q<sub>1</sub>, q<sub>2</sub>')}</td><td>مقدار كل من الشحنتين النقطيتين</td><td>كولوم ${L('(C)')}</td></tr>
+  <tr><td>${L('r')}</td><td>البعد بين مركزي الشحنتين</td><td>متر ${L('(m)')}</td></tr>
+  <tr><td>${L('k')}</td><td>ثابت التناسب، يعتمد على نوع مادة الوسط بين الشحنتين</td><td>${L('N·m<sup>2</sup>/C<sup>2</sup>')}</td></tr></table>
+  ${box('notebox','قيمة الثابت في الفراغ: '+L('k = 9×10<sup>9</sup> N·m<sup>2</sup>/C<sup>2</sup>'))}
+  <h4>متى نستعمله؟</h4><p>لحساب القوة بين شحنتين نقطيتين ساكنتين، أو لإيجاد إحدى الشحنتين أو البعد بينهما إذا عُلمت القوة.</p>
+  <h4>ملاحظات مهمة</h4><ul><li>حوّل البعد إلى متر قبل التعويض (مثلاً ${L('10 cm = 0.1 m')}).</li><li>حوّل ${L('μC')} و${L('nC')} إلى كولوم.</li><li>القوى متبادلة وتخضع للقانون الثالث لنيوتن: ${L('F<sub>21</sub> = − F<sub>12</sub>')}، أي متساوية بالمقدار ومتعاكسة بالاتجاه.</li><li>في مثال الكتاب: «بما أن القوة الكهربائية موجبة فهي قوة تنافر».</li></ul>`,[],{id:'n_coulomb',links:['n_coulomb_unit','n_efield_law']}),
+  N('ex','مثال: شحنتان موجبتان (90 N)',
+  `<p><b>السؤال:</b> وضعت شحنة نقطية موجبة مقدارها ${L('+4×10<sup>-6</sup> C')} على بعد ${L('0.06 m')} من شحنة نقطية أخرى موجبة مقدارها ${L('+9×10<sup>-6</sup> C')}. احسب مقدار: 1- القوة التي تؤثر بها الأولى على الثانية وما نوعها؟ 2- القوة التي تؤثر بها الثانية على الأولى وما نوعها؟</p>
+  <p>حاول الحل بنفسك أولاً، ثم أظهر الخطوات:</p>
+  ${steps([
+   '<b>المعطيات:</b> '+L('q<sub>1</sub> = +4×10<sup>-6</sup> C ، q<sub>2</sub> = +9×10<sup>-6</sup> C ، r = 0.06 m ، k = 9×10<sup>9</sup>'),
+   '<b>المطلوب:</b> '+L('F<sub>12</sub>')+' و '+L('F<sub>21</sub>')+' ونوع كل منهما.',
+   '<b>القانون:</b> قانون كولوم، لأن لدينا شحنتين نقطيتين والبعد بينهما معلوم.',
+   '<b>التعويض:</b> '+L('F<sub>12</sub> = 9×10<sup>9</sup> × '+fr('(4×10<sup>-6</sup>)(9×10<sup>-6</sup>)','(0.06)<sup>2</sup>')),
+   '<b>الحساب:</b> '+L(fr('9×4×9 × 10<sup>9−6−6</sup>','36×10<sup>-4</sup>')+' = '+fr('324×10<sup>-3</sup>','36×10<sup>-4</sup>')+' = 9×10 = 90'),
+   '<b>الناتج:</b> '+L('F<sub>12</sub> = 90 N')+'، وبما أن القوة موجبة فهي <b>قوة تنافر</b>.',
+   '<b>الجزء الثاني:</b> بالطريقة نفسها '+L('F<sub>21</sub> = 90 N')+' قوة تنافر، و'+L('F<sub>21</sub> = − F<sub>12</sub>')+': متساويتان بالمقدار ومتعاكستان بالاتجاه (القانون الثالث لنيوتن).'])}`)
+ ],{sec:'1-8'}),
+
+ N('lesson','المجال الكهربائي',`<p>${L('The electric field')}: تأثير تُحدثه الشحنة في الحيز المحيط بها.</p>`+FIG.efield,[
+  N('def','المجال الكهربائي وشحنة الاختبار',
+  `<p>الشحنة النقطية الموجبة ${L('q')} تُحدث في الحيز المحيط بها تأثيراً يُعرف بالمجال الكهربائي، ويُختبر عند أي نقطة بوساطة <b>شحنة صغيرة موجبة</b> تسمى <b>شحنة الاختبار</b> ${L("(Test charge) q′")} توضع في تلك النقطة وتُقاس القوة المؤثرة فيها. شكل (25-a)، (25-b)</p>
+  ${box('defbox','<b>مقدار المجال الكهربائي</b> في أية نقطة: القوة الكهربائية لوحدة الشحنة المؤثرة في شحنة اختبارية صغيرة موجبة '+L("q′")+' موضوعة في تلك النقطة.')}`),
+  N('law','قانون المجال الكهربائي',
+  eq('E = '+fr('F',"q′"))+`<p style="text-align:center">مقدار المجال الكهربائي = ${fr('القوة الكهربائية','مقدار الشحنة الاختبارية')}</p>
+  <table><tr><th>الرمز</th><th>الكمية</th><th>الوحدة</th></tr>
+  <tr><td>${L('E')}</td><td>مقدار المجال الكهربائي</td><td>${L('N/C')}</td></tr>
+  <tr><td>${L('F')}</td><td>مقدار القوة الكهربائية</td><td>${L('N')}</td></tr>
+  <tr><td>${L("q′")}</td><td>الشحنة الاختبارية الموجبة</td><td>${L('C')}</td></tr></table>
+  <h4>صيغة أخرى من الكتاب</h4>${eq("F = q′ E")}<p>نستعملها عند إيجاد القوة المؤثرة في شحنة موضوعة في مجال معلوم.</p>`,[],{id:'n_efield_law',links:['n_coulomb']}),
+  N('concept','خطوط المجال الكهربائي',
+  FIG.efield+`<p>يُمثَّل المجال الكهربائي بالرسم بخطوط قوى (غير مرئية) <b>تبدأ من الشحنة الموجبة وتنتهي بالشحنة السالبة</b>.</p>
+  <p>الشكل (26-a): المجال بين شحنتين نقطيتين متشابهتين. الشكل (26-b): المجال بين شحنتين نقطيتين مختلفتين.</p>`,[],{id:'n_elines',links:['n_mlines']}),
+  N('def','المجال الكهربائي المنتظم',
+  FIG.uniform+box('defbox','<b>المجال المنتظم:</b> المجال المتولد بين لوحين معدنيين مستويين متوازيين مشحونين بشحنتين متساويتين مقداراً ومختلفتين في النوع؛ خطوطه متوازية، وتبعد عن بعضها أبعاداً متساوية، وعمودية على اللوحين. أي هو المجال <b>الثابت المقدار والاتجاه</b> في جميع نقاطه. شكل (27)')),
+  N('ex','مثال: حساب المجال (2×10³ N/C)',
+  `<p><b>السؤال:</b> شحنة نقطية موجبة مقدارها ${L('+2×10<sup>-9</sup> C')} وضعت عند نقطة في مجال كهربائي فتأثرت بقوة مقدارها ${L('4×10<sup>-6</sup> N')}. ما مقدار المجال الكهربائي في تلك النقطة؟</p>
+  ${steps([
+   '<b>المعطيات:</b> '+L("q′ = +2×10<sup>-9</sup> C ، F = 4×10<sup>-6</sup> N"),
+   '<b>المطلوب:</b> مقدار المجال '+L('E'),
+   '<b>القانون:</b> '+L("E = F / q′")+' لأن القوة والشحنة الاختبارية معلومتان.',
+   '<b>التعويض:</b> '+L('E = '+fr('4×10<sup>-6</sup> N','2×10<sup>-9</sup> C')),
+   '<b>الحساب:</b> 4 ÷ 2 = 2، والأسس: −6 − (−9) = 3',
+   '<b>الناتج:</b> '+L('E = 2×10<sup>3</sup> N/C')])}`)
+ ],{sec:'1-9'}),
+
+ N('q','أسئلة الفصل الأول ومسائله',
+ `<p>أسئلة الكتاب في نهاية الفصل (الصفحات 25–30). اضغط فرعاً لتراه.</p>${warn('السؤالان س5 وس7 يعتمدان على أشكال لا تظهر في المخطط؛ ارجع إلى الكتاب لرؤيتها.')}`,[
+  N('q','س1: اختر العبارة الصحيحة (9 فقرات)',
+  `<ol><li>الذرة المتعادلة هي ذرة…</li><li>يصير الجسم مشحوناً بشحنة موجبة إذا كانت بعض ذراته تمتلك…</li><li>عند فقدان شحنة ${L('1.6×10<sup>-9</sup> C')} من جسم موصل معزول متعادل، فإن عدد الإلكترونات المفقودة…</li><li>شحنتان موجبتان البعد بينهما ${L('10 cm')}، استُبدلت إحداهما بأخرى سالبة بالمقدار نفسه، فإن مقدار القوة…</li><li>شحنتان (موجبة وسالبة) البعد بينهما ${L('3 cm')} والقوة ${L('F<sub>1</sub>')}، أُبعدتا إلى ${L('6 cm')} فصارت القوة ${L('F<sub>2</sub>')} تساوي…</li><li>بعد السير على سجادة صوف ولمس مقبض الباب تُصاب بصعقة خفيفة، لأن الشحنات…</li><li>الجسم A شحنته ${L('+2 μC')} والجسم B شحنته ${L('+6 μC')}، فالقوة المتبادلة…</li><li>تقريب جسم موجب من قرص كشاف ذي ورقتين مشحون بشحنة موجبة يؤدي إلى…</li><li>تقريب جسم سالب من قرص كشاف متصل بالأرض…</li></ol>
+  <p>راجع: <b>1-2</b> الشحنة، <b>1-5</b> شحن الكشاف، <b>1-8</b> قانون كولوم.</p>`),
+  N('q','س2–س7: علّل، وضّح، عدّد',
+  `<ul><li><b>س2 علّل:</b> (1) تُجهَّز سيارات نقل الوقود بسلاسل معدنية في مؤخرتها تلامس الأرض. (2) تتعادل شحنة الجسم المشحون عند إيصاله بالأرض. (3) يزداد انفراج ورقتي الكشاف المشحون بشحنة سالبة عند تقريب جسم سالب من قرصه.</li>
+  <li><b>س3:</b> وضّح كيف تشحن كشافاً بشحنة موجبة باستعمال: (a) ساق زجاج موجبة، (b) ساق مطاط سالبة.</li>
+  <li><b>س4:</b> عدّد طرائق شحن الأجسام بالكهربائية الساكنة.</li>
+  <li><b>س5:</b> ساق زجاج موجبة وكرة معدنية معزولة متعادلة في ثلاث حالات (a-b-c) — يعتمد على الشكل.</li>
+  <li><b>س6:</b> طالب شحن كشافاً بالحث لكنه <b>أبعد الساق قبل أن يرفع إصبعه</b> فوجد الورقتين منطبقتين. ما تفسير ذلك؟</li>
+  <li><b>س7:</b> اكتب نوع الشحنة في الأشكال — يعتمد على الأشكال.</li></ul>
+  <p>تلميح لـ س6: قارن ترتيب خطواته مع ترتيب الخطوات في نشاط الشحن بالحث.</p>`,[],{links:['n_induction']}),
+  N('ex','مسألة 1: إيجاد الشحنة (جواب الكتاب 1×10⁻⁹ C)',
+  `<p>شحنتان نقطيتان متماثلتان قوة التنافر بينهما ${L('9×10<sup>-7</sup> N')} عندما كان البعد بينهما ${L('10 cm')}. احسب مقدار شحنة كل منهما.</p>
+  ${steps(['<b>المعطيات:</b> '+L('F = 9×10<sup>-7</sup> N ، r = 10 cm = 0.1 m ، q<sub>1</sub> = q<sub>2</sub> = q'),
+   '<b>القانون:</b> '+L('F = k q<sup>2</sup> / r<sup>2</sup>')+' ومنه '+L('q<sup>2</sup> = F r<sup>2</sup> / k'),
+   '<b>التعويض:</b> '+L('q<sup>2</sup> = '+fr('9×10<sup>-7</sup> × (0.1)<sup>2</sup>','9×10<sup>9</sup>')+' = '+fr('9×10<sup>-9</sup>','9×10<sup>9</sup>')+' = 10<sup>-18</sup>'),
+   '<b>الجذر:</b> '+L('q = 10<sup>-9</sup> C'),
+   '<b>الناتج:</b> '+L('q = 1×10<sup>-9</sup> C')+' (يطابق جواب الكتاب)'])}`),
+  N('ex','مسألة 2: قوة التنافر (جواب الكتاب 3.24×10⁻⁵ N)',
+  `<p>شحنتان موجبتان متماثلتان مقدار كل منهما ${L('3×10<sup>-9</sup> C')} والبعد بينهما ${L('5 cm')}. احسب مقدار قوة التنافر.</p>
+  ${steps(['<b>المعطيات:</b> '+L('q<sub>1</sub> = q<sub>2</sub> = 3×10<sup>-9</sup> C ، r = 5 cm = 0.05 m'),
+   '<b>القانون:</b> قانون كولوم '+L('F = k q<sub>1</sub>q<sub>2</sub> / r<sup>2</sup>'),
+   '<b>التعويض:</b> '+L('F = 9×10<sup>9</sup> × '+fr('(3×10<sup>-9</sup>)(3×10<sup>-9</sup>)','(0.05)<sup>2</sup>')),
+   '<b>الحساب:</b> '+L(fr('81×10<sup>-9</sup>','25×10<sup>-4</sup>')+' = 3.24×10<sup>-5</sup>'),
+   '<b>الناتج:</b> '+L('F = 3.24×10<sup>-5</sup> N')+' (يطابق جواب الكتاب)'])}`,[],{links:['n_coulomb']}),
+  N('ex','مسألة 3: القوة في مجال (جواب الكتاب 12 N)',
+  `<p>شحنة ${L('+3 μC')} وضعت عند نقطة P في مجال كهربائي مقداره ${L('4×10<sup>6</sup> N/C')}. احسب مقدار القوة الكهربائية المؤثرة فيها.</p>
+  ${steps(['<b>المعطيات:</b> '+L("q′ = 3×10<sup>-6</sup> C ، E = 4×10<sup>6</sup> N/C"),
+   '<b>القانون:</b> '+L("F = q′ E"),
+   '<b>التعويض:</b> '+L('F = 3×10<sup>-6</sup> × 4×10<sup>6</sup>'),
+   '<b>الحساب:</b> 3 × 4 = 12، والأسس: −6 + 6 = 0',
+   '<b>الناتج:</b> '+L('F = 12 N')+' (يطابق جواب الكتاب)'])}`,[],{links:['n_efield_law']})
+ ])
+],{ch:1}),
+
+/* ---------------- الفصل الثاني ---------------- */
+N('chapter','الفصل الثاني: المغناطيسية',
+`<p>${L('Magnetism')} — الصفحات 31–46.</p>
+<h4>مفردات الفصل</h4><ul><li>2-1 مفهوم المغناطيسية</li><li>2-2 المواد المغناطيسية</li><li>2-3 المجال المغناطيسي</li><li>2-4 تمغنط المواد: (a) بالدلك، (b) بالحث</li></ul>`,[
+ N('note','الأهداف السلوكية والمصطلحات',
+ `<h4>بعد دراسة الفصل ينبغي أن يكون الطالب قادراً على أن:</h4><ul><li>يوضح الفرق بين الخواص المغناطيسية للمواد (الدايا مغناطيسية، البارا مغناطيسية، الفيرومغناطيسية).</li><li>يصف شكل خطوط المجال المغناطيسي.</li><li>يستنتج أن المجال المغناطيسي يمكنه النفاذ خلال مواد مختلفة.</li><li>يقارن بين المغناطيس المتولد بطريقة الدلك وبطريقة الحث (التأثير).</li></ul>
+ <h4>المصطلحات العلمية</h4><table>
+ <tr><td>المغناطيس</td><td>${L('Magnet')}</td></tr><tr><td>المجال المغناطيسي</td><td>${L('Magnetic field')}</td></tr><tr><td>المواد المغناطيسية</td><td>${L('Magnetic materials')}</td></tr><tr><td>الحث المغناطيسي</td><td>${L('Magnetic induction')}</td></tr><tr><td>ساق مغناطيسية</td><td>${L('Magnetic bar')}</td></tr><tr><td>الحجر المغناطيسي</td><td>${L('Lode stone')}</td></tr><tr><td>البوصلة المغناطيسية</td><td>${L('Magnetic Compass')}</td></tr><tr><td>إبرة البوصلة</td><td>${L('Compass Needle')}</td></tr></table>`),
+
+ N('lesson','مفهوم المغناطيسية','<p>اكتشاف المغناطيس وأنواعه واستعمالاته.</p>',[
+  N('concept','الحجر المغناطيسي',
+  `<p>منذ 25 قرناً اكتشف اليونانيون معدناً يجذب إليه قطع الحديد أطلقوا عليه اسم <b>المغنيت</b>، يتركب من أوكسيد الحديد الأسود ${L('(Fe<sub>3</sub>O<sub>4</sub>)')}، وأصبح معروفاً بالحجر المغناطيسي ${L('(Lode stone)')}. شكل (1)</p>`),
+  N('concept','المغانط الصناعية',
+  '<p>توجد أنواع مختلفة من المغانط الصناعية، منها بشكل <b>ساق مغناطيسية</b>، ومنها مغناطيس بشكل <b>حرف U</b>. شكل (2)</p>'),
+  N('app','استعمالات المغناطيس',
+  `<ul><li>المغانط الكهربائية الضخمة لرفع قطع الفولاذ أو حديد الخردة (السكراب). شكل (3)</li><li>مولدات الصوت (السماعة). شكل (4)</li><li>المولدات والمحركات الكهربائية والتلفاز وأجهزة التسجيل الصوتية.</li><li>الحروف المطبعية للآلة الكاتبة. شكل (5)</li><li>بوصلات الملاحة. شكل (6)</li></ul>`),
+  N('def','إبرة البوصلة',
+  box('defbox','<b>إبرة البوصلة:</b> مغناطيس دائمي صغير يمكنه الدوران بحرية في مستوى أفقي حول محور شاقولي مدبب.'))
+ ],{sec:'2-1',ch:2}),
+
+ N('lesson','المواد المغناطيسية','<p>تُصنف المواد وفقاً لخواصها المغناطيسية إلى ثلاثة أنواع، وللمغناطيس قطبان.</p>',[
+  N('def','الدايا مغناطيسية',
+  box('defbox','<b>المواد الدايا مغناطيسية:</b> المواد التي <b>تتنافر</b> مع المغناطيس القوي تنافراً <b>ضعيفاً</b>.')+'<p><b>أمثلة:</b> البزموث، الإنتيمون، النحاس، السيليكون، الفضة. شكل (7-a)</p>'),
+  N('def','البارا مغناطيسية',
+  box('defbox','<b>المواد البارا مغناطيسية:</b> المواد التي <b>تنجذب</b> بالمغناطيس القوي تجاذباً <b>ضعيفاً</b>.')+'<p><b>أمثلة:</b> الألمنيوم، الكالسيوم، الصوديوم، التيتانيوم. شكل (7-b)</p>'),
+  N('def','الفيرومغناطيسية',
+  box('defbox','<b>المواد الفيرومغناطيسية:</b> المواد التي تنجذب بالمغناطيس <b>الاعتيادي</b>، فهي تمتلك <b>قابلية تمغنط عالية</b>.')+'<p><b>أمثلة:</b> الحديد، الفولاذ، النيكل، الكوبلت. شكل (7-c)</p><p>ماسكات الأوراق والدبابيس والإبر تنجذب بقوة نحو المغناطيس، بينما قلم الرصاص والطباشير والممحاة لا تتأثر به. شكل (8)</p>'),
+  N('note','مقارنة: أنواع المواد المغناطيسية',
+  `<table><tr><th>النوع</th><th>سلوكه مع المغناطيس</th><th>أمثلة</th></tr>
+  <tr><td>دايا مغناطيسية</td><td>تنافر ضعيف مع المغناطيس القوي</td><td>بزموث، نحاس، فضة</td></tr>
+  <tr><td>بارا مغناطيسية</td><td>تجاذب ضعيف مع المغناطيس القوي</td><td>ألمنيوم، صوديوم</td></tr>
+  <tr><td>فيرومغناطيسية</td><td>تنجذب بالمغناطيس الاعتيادي، قابلية تمغنط عالية</td><td>حديد، فولاذ، نيكل، كوبلت</td></tr></table>`),
+  N('def','الأقطاب المغناطيسية',
+  box('defbox','<b>الأقطاب المغناطيسية:</b> مناطق في المغناطيس يكون عندها مقدار القوة المغناطيسية بأعظم ما يمكن. شكل (9)')
+  +`<ul><li>للمغناطيس قطبان: <b>القطب الشمالي</b> (الباحث عن الشمال) و<b>القطب الجنوبي</b> (الباحث عن الجنوب).</li>
+  <li>تتجمع برادة الحديد بتركيز عالٍ عند القطبين، في الساق المستقيمة وفي مغناطيس حرف U.</li>
+  <li>الأقطاب <b>لا توجد بشكل منفرد</b>، بل بشكل أزواج متساوية بالمقدار ومختلفة في النوع.</li>
+  <li>إذا قُطِّع المغناطيس إلى عدة قطع مهما كان عددها، فإن كل قطعة تمتلك قطبين: شمالي وجنوبي. شكل (10)</li></ul>`),
+  N('act','نشاط: التجاذب والتنافر بين الأقطاب',
+  `<p>المغانط تؤثر في بعضها بقوة تشبه القوى بين الشحنات الكهربائية.</p>
+  <p><b>الأدوات:</b> ساقان مغناطيسيتان، خيط، كُلّاب، حامل (من مادة لا تتأثر بالمغناطيس).</p>
+  ${steps(['نعلق ساقاً مغناطيسية من منتصفها حرة أفقياً: تتخذ وضعاً بموازاة خط (الشمال–الجنوب) الجغرافي تقريباً. شكل (12)',
+   'نقرب القطب الشمالي (N) لساق ممسوكة باليد من القطب الشمالي للساق المعلقة: <b>يبتعد</b> (تنافر). شكل (13-a)',
+   'نقرب القطب الجنوبي (S) من القطب الجنوبي للمعلقة: <b>يبتعد</b> (تنافر). شكل (13-b)',
+   'نقرب القطب الشمالي من القطب الجنوبي للمعلقة: <b>ينجذبان</b> (تجاذب). شكل (13-c)'])}
+  ${box('notebox','<b>نستنتج:</b> الأقطاب المغناطيسية المتشابهة تتنافر، والأقطاب المختلفة تتجاذب.')}`,[],{id:'n_pole_forces',links:['n_charge_forces']})
+ ],{sec:'2-2',ch:2}),
+
+ N('lesson','المجال المغناطيسي','<p>الحيز المحيط بالمغناطيس، وطرق رسم خطوطه، ونفاذه خلال المواد.</p>'+FIG.magnet,[
+  N('def','تعريف المجال المغناطيسي',
+  box('defbox','<b>المجال المغناطيسي</b> في منطقة ما: هو الحيز الذي يحيط بالمغناطيس والذي يظهر فيه تأثير القوى المغناطيسية. شكل (14)')),
+  N('concept','خطوط المجال المغناطيسي',
+  FIG.magnet+`<p>يُمثَّل المجال المغناطيسي بالرسم بخطوط تمتاز بكونها:</p><ul><li>خطوط <b>مقفلة</b> و<b>غير مرئية</b>.</li><li>تتجه من <b>القطب الشمالي نحو القطب الجنوبي خارج المغناطيس</b>، ومكملة دورتها داخله. شكل (15)</li></ul>
+  <p>تُرسم باستعمال البوصلة المغناطيسية أو مجموعة بوصلات صغيرة، ويمكن الكشف عنها باستعمال برادة الحديد. شكل (16)</p>
+  ${box('notebox','<b>قارن:</b> خطوط المجال الكهربائي تبدأ من الشحنة الموجبة وتنتهي بالسالبة، أما خطوط المجال المغناطيسي فمقفلة.')}`,[],{id:'n_mlines',links:['n_elines']}),
+  N('act','نشاط: كشف الخطوط ببرادة الحديد',
+  `<p><b>الأدوات:</b> ساق مغناطيسية، لوح من الزجاج، برادة الحديد.</p><ol><li>نضع لوح الزجاج على الساق المغناطيسية أفقياً.</li><li>ننثر برادة الحديد على اللوح وننقره بلطف.</li></ol>
+  <p><b>نلاحظ:</b> البرادة ترتبت بشكل خطوط تمثل خطوط المجال المغناطيسي حول الساق. شكل (17)</p>`),
+  N('act','نشاط 1: النفاذ خلال جسم الإنسان',
+  `<p><b>سؤال:</b> هل يمكن للمجال المغناطيسي النفاذ خلال جسم الإنسان أو خلال بعض المواد الأخرى؟</p>
+  <p><b>الأدوات:</b> مثبتات ورق من الفولاذ (مواد فيرومغناطيسية)، مغناطيس قوي.</p>
+  <ol><li>نضع الساق المغناطيسية على كف اليد.</li><li>نضع راحة اليد على مجموعة من مثبتات الورق.</li><li>نرفع الكف إلى الأعلى: تنجذب مجموعة كبيرة منها إلى راحة الكف. شكل (18)</li></ol>
+  ${box('notebox','<b>الاستنتاج:</b> المجال المغناطيسي يمكنه النفاذ خلال جسم الإنسان.')}`),
+  N('act','نشاط 2: النفاذ خلال مواد مختلفة',
+  `<p><b>الأدوات:</b> ساق مغناطيسية، ورق مقوى (كارتون) أو خشب أو زجاج، مسامير حديد، أسطوانة زجاجية، ماء.</p>
+  <p><b>الجزء (a):</b> نضع المسامير على ورقة المقوى فوق القطب العلوي لمغناطيس ممسوك شاقولياً، ونحرك المغناطيس تحت الورقة: تتحرك المسامير متبعة مسار القطب. شكل (19-a)</p>
+  <p><b>الجزء (b):</b> نضع المسامير داخل أسطوانة زجاجية فيها ماء، ونقرب القطب من جدارها ونحركه حولها: تنجذب المسامير وتتبع حركة القطب. شكل (19-b)</p>
+  ${box('notebox','<b>نستنتج:</b> المجال المغناطيسي يمكنه النفاذ خلال مواد مختلفة (مثل ورق المقوى السميك والزجاج والماء).')}`)
+ ],{sec:'2-3',ch:2}),
+
+ N('lesson','تمغنط المواد','<p>يمكن الحصول على المغانط الدائمية والمؤقتة بطريقتين: <b>الدلك</b> و<b>الحث</b>.</p>',[
+  N('concept','التمغنط بالدلك',
+  `<p>تُمغنط قطعة فولاذ (مثلاً إبرة الخياطة) بدلكها بأحد قطبي مغناطيس:</p>
+  <ul><li>يُحرَّك القطب فوق الإبرة <b>باتجاه واحد فقط</b> وبحركة <b>بطيئة</b> وتُكرر <b>مرات عدة</b>.</li><li>تصير الإبرة مغناطيساً.</li></ul>
+  ${box('notebox','القطب المتولد في نهاية جهة الدلك للإبرة يكون <b>دائماً مخالفاً</b> في النوع للقطب المغناطيسي الدالك. شكل (20)')}`,[],{id:'n_mag_rub',links:['n_rubbing']}),
+  N('concept','التمغنط بالحث: التقريب',
+  `<p>عند وضع مادة فيرومغناطيسية غير ممغنطة (مثل مسمار حديد) داخل مجال مغناطيسي قوي، أو بالقرب من مغناطيس قوي <b>من غير تماس</b>، يكتسب المسمار المغناطيسية <b>بالحث (التأثير)</b>، ويتولد على طرفيه قطبان. شكل (21)</p>
+  <table><tr><th>طرف المسمار</th><th>نوع القطب المتولد</th></tr><tr><td>القريب من المغناطيس المؤثر</td><td><b>مخالف</b> للقطب المؤثر</td></tr><tr><td>البعيد</td><td><b>مشابه</b> للقطب المؤثر</td></tr></table>`,[],{id:'n_mag_ind',links:['n_induction']}),
+  N('concept','التمغنط بالتيار المستمر (المغناطيس الكهربائي)',
+  `<p>الطريقة <b>المفضلة</b> لمغنطة مادة فيرومغناطيسية مثل الفولاذ: توضع داخل <b>ملف مجوف</b> (سلك موصل معزول ملفوف بشكل لولبي)، أو يُلف السلك مباشرة حول مسمار أو برغي من الفولاذ، ويوصل طرفا السلك بقطبي بطارية مناسبة الفولطية. شكل (22)</p>
+  ${box('defbox','نحصل على مغناطيس يسمى <b>المغناطيس الكهربائي</b>.')}
+  <h4>يعتمد مقدار قوة المغناطيس الكهربائي على:</h4><ol><li>مقدار التيار المستمر المنساب في الدائرة.</li><li>عدد لفات السلك حول قطعة الفولاذ (عدد لفات الملف).</li><li>نوع المادة المراد مغنطتها.</li></ol>`),
+  N('note','فقدان المغناطيسية',
+  `<p>يفقد المغناطيس مغناطيسيته بطرائق عدة منها: شكل (23)</p><ul><li>(a) الطرق القوي.</li><li>(b) التسخين الشديد.</li></ul>`),
+  N('enrich','هل تعلم: الحافظة المغناطيسية',
+  box('enrbox','<b>للاطلاع:</b> الحافظة المغناطيسية مادة فيرومغناطيسية تستعمل لحماية الأجهزة من التأثيرات المغناطيسية الخارجية (كالساعات)، ولحفظ المغانط الدائمة من زوال مغناطيسيتها بمرور الوقت.')),
+  N('note','مقارنة: التمغنط بالدلك والتمغنط بالحث',
+  `<table><tr><th></th><th>بالدلك</th><th>بالحث (التقريب)</th></tr>
+  <tr><td>التماس</td><td>يُدلك بأحد قطبي المغناطيس</td><td>من غير تماس</td></tr>
+  <tr><td>نوع القطب المتولد</td><td>في نهاية جهة الدلك: مخالف للقطب الدالك</td><td>الطرف القريب مخالف، والبعيد مشابه للقطب المؤثر</td></tr></table>
+  ${box('notebox','يقابل هذا في الفصل الأول: الشحن بالدلك والشحن بالحث.')}`,[],{links:['n_mag_rub','n_mag_ind']})
+ ],{sec:'2-4',ch:2}),
+
+ N('q','أسئلة الفصل الثاني',
+ `<p>الصفحات 44–46.</p>
+ <h4>س1: اختر العبارة الصحيحة (6 فقرات)</h4><ol><li>تُستعمل البوصلة لرسم خطوط المجال لأن إبرتها…</li><li>المغانط الدائمية تُصنع من مادة…</li><li>اتجاه إبرة بوصلة بين قطبي مغناطيس حرف U (يعتمد على الشكل).</li><li>تُصنف المواد وفق خواصها المغناطيسية إلى…</li><li>خطوط المجال المغناطيسي تمتاز بأنها…</li><li>عند تقطيع ساق مغناطيسية إلى قطع صغيرة…</li></ol>
+ <h4>الأسئلة المقالية</h4><ul><li><b>علّل:</b> كثيراً ما تكون المغانط ملائمة للاستعمال في أبواب خزانات الملابس والثلاجة الكهربائية.</li>
+ <li>ثلاث سيقان متشابهة تماماً: ألمنيوم، وحديد، ومغناطيس دائمي. وضّح كيف تميز إحداها عن الأخريات.</li>
+ <li>ارسم مخططاً يوضح شكل خطوط المجال المغناطيسي للحالات الآتية (تعتمد على الأشكال).</li>
+ <li>اشرح نشاطاً تشاهد فيه خطوط المجال المغناطيسي باستعمال برادة الحديد لساق مستقيمة.</li></ul>
+ ${warn('في الملف تظهر أرقام الأسئلة (س2–س5) منفصلة عن نصوصها، لذلك لم تُربط النصوص بأرقامها هنا؛ راجع الترقيم في الكتاب.')}`)
+],{ch:2})
+]);
+
+/* ===================== التهيئة ===================== */
+const byId={};const parent={};
+const LTRRE=/[A-Za-z0-9][A-Za-z0-9×⁻³²¹⁰⁹⁵.\/ ′=μ]*[A-Za-z0-9³²¹⁰⁹⁵′)]?/g;
+(function walk(n,p,depth,ch,side){n.t=n.t.replace(LTRRE,m=>'\u2066'+m.trim()+'\u2069'+(m.endsWith(' ')?' ':''));n.depth=depth;n.ch=n.ch||ch;n.side=side;byId[n.id]=n;if(p)parent[n.id]=p;
+ n.kids.forEach((k,i)=>walk(k,n,depth+1,depth===0?(i+1):n.ch,depth===0?(i===0?1:-1):side));})(DATA,null,0,0,0);
+// تعديل الأبعاد: الفصل الأول على اليمين والثاني على اليسار
+const CHC={1:['var(--ch1)','var(--ch1-soft)','#2563c9'],2:['var(--ch2)','var(--ch2-soft)','#c2410c']};
+// روابط ثنائية الاتجاه
+Object.values(byId).forEach(n=>(n.links||[]).forEach(l=>{const m=byId[l];if(m){m.links=m.links||[];if(!m.links.includes(n.id))m.links.push(n.id);}}));
+const XPAIRS=[];const seen=new Set();
+Object.values(byId).forEach(n=>(n.links||[]).forEach(l=>{const k=[n.id,l].sort().join('|');if(!seen.has(k)&&byId[l]){seen.add(k);XPAIRS.push([n.id,l]);}}));
+
+function color(n){if(n.type==='root')return '#1f2433';if(n.type==='chapter'||n.type==='lesson')return CHC[n.ch][2];return TYPES[n.type].c;}
+function label(n){if(n.type==='lesson')return 'درس '+(n.sec||'');if(n.type==='chapter')return 'الفصل '+(n.ch===1?'الأول':'الثاني');return TYPES[n.type].n;}
+
+let open=new Set();function setLevel(l){open=new Set();Object.values(byId).forEach(n=>{if(n.depth<l&&n.kids.length)open.add(n.id)});}
+setLevel(innerWidth<=700?1:2);
+
+/* ===================== التخطيط ===================== */
+const COLW=235, nodesEl=document.getElementById('nodes'), svg=document.getElementById('edges');
+let pos={};
+const HC={};function rowH(n){return (HC[n.id]||48)+10;}
+function layout(){
+ pos={};pos[DATA.id]={x:0,y:0};
+ [1,-1].forEach(side=>{
+  let cur=0;const placed=[];
+  function lay(n,d){const x=side*(d*COLW+ (d>0?20:0));
+   const vis=open.has(n.id)?n.kids:[];
+   if(!vis.length){const h=rowH(n);const y=cur+h/2;cur+=h;pos[n.id]={x,y};placed.push(n.id);return y;}
+   const ys=vis.map(k=>lay(k,d+1));const y=(ys[0]+ys[ys.length-1])/2;pos[n.id]={x,y};placed.push(n.id);return y;}
+  const ch=DATA.kids[side===1?0:1];
+  if(open.has(DATA.id)) lay(ch,1);
+  const ys=placed.map(id=>pos[id].y);if(ys.length){const off=-(Math.min(...ys)+Math.max(...ys))/2;placed.forEach(id=>pos[id].y+=off);}
+ });
+}
+function visible(id){let p=parent[id];while(p){if(!open.has(p.id))return false;p=parent[p.id];}return true;}
+
+let selected=null, showX=false, typeFilter=null, matches=new Set();
+function render(){
+ const ids=[DATA.id];(function add(n){if(open.has(n.id))n.kids.forEach(k=>{ids.push(k.id);add(k);});})(DATA);
+ nodesEl.innerHTML='';const els={};
+ ids.forEach(id=>{const n=byId[id];
+  const d=document.createElement('div');d.className='node '+n.type+(id===selected?' sel':'')+(matches.has(id)?' match':'');
+  if(typeFilter&&n.type!==typeFilter&&n.type!=='root'&&n.type!=='chapter')d.classList.add('dim');
+  d.style.setProperty('--c',color(n));
+  if(n.type==='lesson')d.style.setProperty('--soft',CHC[n.ch][1]);
+  d.dataset.id=id;
+  const flag=n.body.includes('warnbox')?' <span class="flag" title="فيه ملاحظة تحتاج مراجعة">⚠</span>':'';
+  d.innerHTML=(n.type!=='root'?`<span class="k">${label(n)}${flag}</span>`:'')+`<span class="tt">${n.t}</span>`;
+  if(n.kids.length&&n.type!=='root'){const b=document.createElement('button');b.className='tg '+(n.side===1?'r':'l');
+   b.textContent=open.has(id)?'−':n.kids.length;b.title=open.has(id)?'طي الفروع':'فتح الفروع ('+n.kids.length+')';b.dataset.tg=id;d.appendChild(b);}
+  nodesEl.appendChild(d);els[id]=d;});
+ ids.forEach(id=>{if(!HC[id])HC[id]=els[id].offsetHeight;});
+ layout();
+ ids.forEach(id=>{const p=pos[id];els[id].style.left=p.x+'px';els[id].style.top=p.y+'px';});
+ drawEdges();
+}
+function W(n){return n.type==='root'?230:n.type==='chapter'?200:190;}
+function drawEdges(){
+ let h='';
+ Object.keys(pos).forEach(id=>{const p=parent[id];if(!p||!pos[p.id])return;const n=byId[id];
+  const a=pos[p.id],b=pos[id],s=n.side;
+  const x1=a.x+s*W(p)/2,x2=b.x-s*W(n)/2,mx=(x1+x2)/2;
+  h+=`<path class="edge" style="stroke:${n.depth<=2?color(n):''}" d="M${x1},${a.y} C${mx},${a.y} ${mx},${b.y} ${x2},${b.y}"/>`;});
+ XPAIRS.forEach(([u,v])=>{const hot=selected&&(u===selected||v===selected);if(!(showX||hot))return;if(!pos[u]||!pos[v])return;
+  const a=pos[u],b=pos[v];const dx=b.x-a.x;const cy=Math.min(a.y,b.y)-60-Math.abs(dx)*0.15;
+  h+=`<path class="xlink${hot?' hot':''}" d="M${a.x},${a.y} Q${(a.x+b.x)/2},${cy} ${b.x},${b.y}"/>`;});
+ svg.innerHTML=h;
+}
+
+/* ===================== التحريك والتكبير ===================== */
+const stage=document.getElementById('stage'),world=document.getElementById('world');
+let T={x:innerWidth/2,y:innerHeight/2+30,s:.8};
+function apply(anim){world.classList.toggle('anim',!!anim);world.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;}
+function zoomAt(f,cx,cy){const ns=Math.min(2.5,Math.max(.15,T.s*f));T.x=cx-(cx-T.x)*ns/T.s;T.y=cy-(cy-T.y)*ns/T.s;T.s=ns;apply();}
+stage.addEventListener('wheel',e=>{e.preventDefault();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);},{passive:false});
+const ptrs=new Map();let moved=0,last=null,pinch=null;
+stage.addEventListener('pointerdown',e=>{if(e.target.closest('#panel'))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;last={x:e.clientX,y:e.clientY};
+ if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:T.s};}stage.classList.add('drag');});
+addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);zoomAt(pinch.s*d/pinch.d/T.s,(a.x+b.x)/2,(a.y+b.y)/2);moved=99;return;}
+ const dx=e.clientX-last.x,dy=e.clientY-last.y;moved+=Math.abs(dx)+Math.abs(dy);T.x+=dx;T.y+=dy;last={x:e.clientX,y:e.clientY};apply();});
+addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===1){last=[...ptrs.values()][0];}if(!ptrs.size)stage.classList.remove('drag');});
+addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinch=null;});
+
+stage.addEventListener('click',e=>{if(moved>6)return;
+ const tg=e.target.closest('[data-tg]');if(tg){const id=tg.dataset.tg;open.has(id)?open.delete(id):open.add(id);render();return;}
+ const nd=e.target.closest('.node');if(nd){select(nd.dataset.id,false);}});
+
+function fit(){layout();const xs=[],ys=[];Object.keys(pos).forEach(id=>{const p=pos[id],w=W(byId[id])/2;xs.push(p.x-w,p.x+w);ys.push(p.y-40,p.y+40);});
+ const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+ const top=document.querySelector('header').offsetHeight+10,vw=innerWidth-30,vh=innerHeight-top-20;
+ T.s=Math.min(1.1,Math.max(.15,Math.min(vw/(maxx-minx),vh/(maxy-miny))));T.x=innerWidth/2-(minx+maxx)/2*T.s;T.y=top+vh/2-(miny+maxy)/2*T.s;apply(true);}
+function centerOn(id){const p=pos[id];if(!p)return;const panelOpen=document.getElementById('panel').classList.contains('open');
+ const mob=innerWidth<=700;const cx=mob?innerWidth/2:(panelOpen?(innerWidth+460)/2:innerWidth/2);const cy=mob?innerHeight*.2:innerHeight/2;
+ if(T.s<.6)T.s=.75;T.x=cx-p.x*T.s;T.y=cy-p.y*T.s;apply(true);}
+
+/* ===================== اللوحة ===================== */
+const panel=document.getElementById('panel');
+function siblings(id){const p=parent[id];return p?p.kids:[byId[id]];}
+function select(id,center=true){
+ const n=byId[id];selected=id;
+ let p=parent[id];while(p){open.add(p.id);p=parent[p.id];}
+ if(n.kids.length)open.add(id);
+ render();
+ const c=color(n);panel.style.setProperty('--c',c);
+ document.getElementById('badge').textContent=label(n);
+ document.getElementById('ptitle').textContent=n.t;
+ const path=[];p=parent[id];while(p){path.unshift(p);p=parent[p.id];}
+ document.getElementById('crumbs').innerHTML=path.map(x=>`<a data-go="${x.id}">${x.t}</a>`).join(' › ');
+ let h=n.body;
+ if(n.kids.length)h+=`<h4>فروع هذه العقدة</h4><div class="chips">${n.kids.map(k=>`<button class="chip" style="--c:${color(k)}" data-go="${k.id}">${k.t} <small>· ${label(k)}</small></button>`).join('')}</div>`;
+ if(n.links&&n.links.length)h+=`<h4>🔗 مرتبط بـ</h4><div class="chips">${n.links.map(l=>byId[l]).map(k=>`<button class="chip" style="--c:${color(k)}" data-go="${k.id}">${k.t} <small>· ${k.ch===1?'الفصل الأول':'الفصل الثاني'}</small></button>`).join('')}</div>`;
+ const pb=document.getElementById('pbody');pb.innerHTML=h;pb.scrollTop=0;
+ pb.querySelectorAll('.stepbtn').forEach(b=>{const ol=b.nextElementSibling;const lis=[...ol.children];
+  b.onclick=()=>{const nx=lis.find(li=>!li.classList.contains('show'));if(nx)nx.classList.add('show');if(lis.every(li=>li.classList.contains('show'))){b.textContent='إخفاء الحل';b.onclick=()=>{lis.forEach(li=>li.classList.remove('show'));b.textContent='أظهر الخطوة التالية';select(id,false);}}};});
+ const sib=siblings(id),i=sib.indexOf(n);
+ const pv=document.getElementById('prev'),nx=document.getElementById('next');
+ pv.disabled=i<=0;nx.disabled=i>=sib.length-1;pv.onclick=()=>select(sib[i-1].id);nx.onclick=()=>select(sib[i+1].id);
+ panel.classList.add('open');
+ if(center)setTimeout(()=>centerOn(id),20);
+}
+panel.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g)select(g.dataset.go);});
+document.getElementById('close').onclick=()=>{panel.classList.remove('open');selected=null;render();};
+addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('close').click();});
+
+/* ===================== الأزرار ===================== */
+document.querySelectorAll('[data-lvl]').forEach(b=>b.onclick=()=>{setLevel(+b.dataset.lvl);if(selected){let p=parent[selected];while(p){open.add(p.id);p=parent[p.id];}}render();fit();});
+document.getElementById('xl').onclick=e=>{showX=!showX;e.currentTarget.classList.toggle('on',showX);if(showX){XPAIRS.forEach(pr=>pr.forEach(id=>{let p=parent[id];while(p){open.add(p.id);p=parent[p.id];}}));render();fit();}else drawEdges();};
+document.getElementById('zin').onclick=()=>zoomAt(1.25,innerWidth/2,innerHeight/2);
+document.getElementById('zout').onclick=()=>zoomAt(.8,innerWidth/2,innerHeight/2);
+document.getElementById('fit').onclick=fit;
+document.getElementById('lgBtn').onclick=()=>document.getElementById('legend').classList.toggle('show');
+
+const lg=document.getElementById('legend');
+lg.innerHTML=Object.entries(TYPES).filter(([k])=>!['root','chapter','lesson'].includes(k)).map(([k,v])=>`<button class="lg" data-t="${k}"><i style="background:${v.c}"></i>${v.n}</button>`).join('')
+ +`<button class="lg" disabled><i style="background:var(--ch1)"></i>الفصل الأول</button><button class="lg" disabled><i style="background:var(--ch2)"></i>الفصل الثاني</button><span class="hint">اضغط نوعاً لتمييزه في المخطط (افتح «الكل» لرؤية جميع العقد)</span>`;
+lg.addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;typeFilter=typeFilter===b.dataset.t?null:b.dataset.t;
+ lg.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===typeFilter));render();});
+
+/* ===================== البحث ===================== */
+const norm=s=>s.replace(/<[^>]+>/g,' ').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').toLowerCase();
+const IDX=Object.values(byId).map(n=>({n,t:norm(n.t.replace(/[\u2066\u2069]/g,'')),b:norm(n.body)}));
+const qi=document.getElementById('q'),res=document.getElementById('results');
+qi.addEventListener('input',()=>{const q=norm(qi.value.trim());matches=new Set();
+ if(q.length<2){res.style.display='none';render();return;}
+ const hits=IDX.filter(x=>x.t.includes(q)||x.b.includes(q)).sort((a,b)=>(b.t.includes(q))-(a.t.includes(q))).slice(0,30);
+ hits.forEach(h=>{matches.add(h.n.id);let p=parent[h.n.id];while(p){open.add(p.id);p=parent[p.id];}});
+ res.innerHTML=hits.length?hits.map(h=>`<button data-go="${h.n.id}">${h.n.t}<small>${label(h.n)} · ${h.n.ch===1?'الفصل الأول':h.n.ch===2?'الفصل الثاني':''}</small></button>`).join(''):'<button disabled>لا توجد نتائج</button>';
+ res.style.display='block';render();});
+res.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){res.style.display='none';select(g.dataset.go);}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search'))res.style.display='none';});
+
+render();fit();
+</script>
+</body>
+</html>
